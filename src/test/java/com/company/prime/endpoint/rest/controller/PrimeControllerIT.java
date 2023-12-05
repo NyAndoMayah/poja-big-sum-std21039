@@ -11,7 +11,7 @@ public class PrimeControllerIT {
     PrimeService service;
     @Test
     public void testGenerateBigInteger() {
-        int numBits = 1000;
+        int numBits = 10000;
         BigInteger bigInteger = service.generatePrime(numBits);
 
         assertTrue(bigInteger != null);
