@@ -13,7 +13,7 @@ public class PrimeController {
     PrimeService primeService;
     @GetMapping("/new-prime")
     public BigInteger new_prime(){
-        int numBits = 10000;
+        int numBits = 500;
         return primeService.generatePrime(numBits);
     }
 }
