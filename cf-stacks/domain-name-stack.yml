@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: mayah-poja-prime - Domain name
+Description: poja-big-sum-std21039 - Domain name
 
 Parameters:
   DomainName:

@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: mayah-poja-prime - Computation and API
+Description: poja-big-sum-std21039 - Computation and API
 
 Globals:
   Function:
@@ -10,24 +10,28 @@ Globals:
     Architectures:
       - x86_64
     Timeout: 600
-    AutoPublishAlias: live
-    SnapStart:
-      ApplyOn: PublishedVersions
+    
     VpcConfig:
       SecurityGroupIds:
-        - !Sub '{{resolve:ssm:/judi/poja/sg/id}}'
+        - !Sub '{{resolve:ssm:C:/Program Files/Git/judi/poja/sg/id}}'
       SubnetIds:
-        - !Sub '{{resolve:ssm:/judi/poja/subnet/private1/id}}'
-        - !Sub '{{resolve:ssm:/judi/poja/subnet/private2/id}}'
+        - !Sub '{{resolve:ssm:C:/Program Files/Git/judi/poja/subnet/private1/id}}'
+        - !Sub '{{resolve:ssm:C:/Program Files/Git/judi/poja/subnet/private2/id}}'
     Environment:
       Variables:
         ENV: !Ref Env
-        AWS_SQS_QUEUE_URL: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/sqs/mailbox-queue-url}}'
-        AWS_EVENTBRIDGE_BUS: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/eventbridge/bus-name}}'
-        DATABASE_URL: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/db/url}}'
-        DATABASE_USERNAME: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/db/username}}'
-        DATABASE_PASSWORD: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/db/password}}'
+        AWS_SQS_QUEUE_URL: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/sqs/mailbox-queue-url}}'
+        AWS_EVENTBRIDGE_BUS: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/eventbridge/bus-name}}'
+        AWS_S3_BUCKET: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/s3/bucket-name}}'
+        AWS_SES_SOURCE: noreply@nowhere.com
+        DRIVERCLASSNAME: org.sqlite.JDBC
+        SPRING_JPA_DATABASEPLATFORM: com.company.base.repository.conf.SqliteDialect
+        DATABASE_URL: jdbc:sqlite:/mnt/efs/sqlite-data:db?cache=shared
+        DATABASE_USERNAME: sa
+        DATABASE_PASSWORD: sa
         
+        
+        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dspring.main.lazy-initialization=true -Dspring.datasource.max-active=5 -Dspring.datasource.max-idle=1 -Dspring.datasource.min-idle=1 -Dspring.datasource.initial-size=1
 
 Parameters:
   Env:
@@ -37,9 +41,12 @@ Resources:
   FrontalFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: com.company.prime.ApiEventHandler::handleRequest
-      MemorySize: 512
-      Role: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/execution/role-arn}}'
+      Handler: com.company.base.ApiEventHandler::handleRequest
+      MemorySize: 2048
+      Role: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/execution/role-arn}}'
+      FileSystemConfigs:
+        - Arn: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/efs/access-point/arn}}'
+          LocalMountPath: /mnt/efs
       Events:
         ApiCall:
           Type: Api
@@ -50,14 +57,17 @@ Resources:
   WorkerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: com.company.prime.MailboxEventHandler::handleRequest
+      Handler: com.company.base.MailboxEventHandler::handleRequest
       MemorySize: 1024
-      Role: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/execution/role-arn}}'
+      Role: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/execution/role-arn}}'
+      FileSystemConfigs:
+        - Arn: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/efs/access-point/arn}}'
+          LocalMountPath: /mnt/efs
       Events:
         AllEvents:
           Type: SQS
           Properties:
-            Queue: !Sub '{{resolve:ssm:/mayah-poja-prime/${Env}/sqs/mailbox-queue-arn}}'
+            Queue: !Sub '{{resolve:ssm:/poja-big-sum-std21039/${Env}/sqs/mailbox-queue-arn}}'
             BatchSize: 5
 
   ApplicationResourceGroup:
@@ -76,7 +86,7 @@ Resources:
   ApiUrlSSM:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Join [ '', [ /mayah-poja-prime/, !Ref Env, /api/url ] ]
+      Name: !Join [ '', [ /poja-big-sum-std21039/, !Ref Env, /api/url ] ]
       Type: String
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
